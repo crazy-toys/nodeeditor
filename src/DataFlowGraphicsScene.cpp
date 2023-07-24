@@ -85,18 +85,52 @@ QMenu *DataFlowGraphicsScene::createSceneMenu(QPointF const scenePos)
     auto registry = _graphModel.dataModelRegistry();
 
     for (auto const &cat : registry->categories()) {
-        auto item = new QTreeWidgetItem(treeView);
-        item->setText(0, cat);
-        item->setFlags(item->flags() & ~Qt::ItemIsSelectable);
+
+        QTreeWidgetItem *cateItem = nullptr;
+        auto const& catPath = cat.split(".");
+        for(auto const& c : catPath)
+        {
+            QTreeWidgetItem *item = nullptr;
+            if(cateItem)
+            {
+                item = new QTreeWidgetItem(cateItem);
+            }
+            else
+            {
+                item = new QTreeWidgetItem(treeView);
+            }
+            item->setText(0, c);
+            item->setFlags(item->flags() & ~Qt::ItemIsSelectable);
+
+            cateItem = item;
+        }
+
     }
 
     for (auto const &assoc : registry->registeredModelsCategoryAssociation()) {
-        QList<QTreeWidgetItem *> parent = treeView->findItems(assoc.second, Qt::MatchExactly);
 
-        if (parent.count() <= 0)
+        const auto find_path = assoc.second.split(".");
+
+        QTreeWidgetItemIterator parent(treeView);
+        while (*parent) {
+            QStringList currentItemPath;
+            QTreeWidgetItem *currentItem = *parent;
+            while (currentItem) {
+                currentItemPath.prepend(currentItem->text(0));
+                currentItem = currentItem->parent();
+            }
+
+            if (currentItemPath == find_path) {
+                break;
+            }
+
+            ++parent;
+        }
+
+        if (not *parent)
             continue;
 
-        auto item = new QTreeWidgetItem(parent.first());
+        auto item = new QTreeWidgetItem(*parent);
         item->setText(0, assoc.first);
     }
 
